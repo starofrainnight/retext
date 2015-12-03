@@ -711,7 +711,8 @@ class ReTextWindow(QMainWindow):
 		textedit = isinstance(pb, QTextEdit)
 		if textedit:
 			scrollbar = pb.verticalScrollBar()
-			disttobottom = scrollbar.maximum() - scrollbar.value()
+			scrollbarValue = scrollbar.value()
+			distToBottom = scrollbar.maximum() - scrollbarValue
 		else:
 			frame = pb.page().mainFrame()
 			scrollpos = frame.scrollPosition()
@@ -722,7 +723,10 @@ class ReTextWindow(QMainWindow):
 		if textedit:
 			pb.setHtml(html)
 			pb.document().setDefaultFont(globalSettings.font)
-			scrollbar.setValue(scrollbar.maximum() - disttobottom)
+			# If scrollbar was at bottom (and that was not the same as top),
+			# set it to bottom again
+			if scrollbarValue:
+				scrollbar.setValue(scrollbar.maximum() - distToBottom)
 		else:
 			pb.settings().setFontFamily(QWebSettings.StandardFont,
 			                            globalSettings.font.family())
