@@ -22,6 +22,8 @@ from markups.common import MODULE_HOME_PAGE
 from ReText import app_version, globalSettings, converterprocess
 from ReText.editor import ReTextEdit
 from ReText.highlighter import ReTextHighlighter
+import os
+import chardet
 
 try:
 	from ReText.fakevimeditor import ReTextFakeVimHandler
@@ -132,7 +134,7 @@ class ReTextTab(QSplitter):
 		'''
 		Set the default markup class to use in case a markup that
 		matches the filename cannot be found. This function calls
-		updateActiveMarkupClass so it can decide if the active 
+		updateActiveMarkupClass so it can decide if the active
 		markup class also has to change.
 		'''
 		self.defaultMarkupClass = markupClass
@@ -286,6 +288,12 @@ class ReTextTab(QSplitter):
 		self.editBox.setVisible(self.previewState < PreviewNormal)
 		self.previewBox.setVisible(self.previewState > PreviewDisabled)
 
+	def detectFileEncoding(self, fileName):
+		someBytes = min(512, os.path.getsize(fileName))
+		raw = open(fileName, 'rb').read(someBytes)
+		result = chardet.detect(raw)
+		return result['encoding']
+
 	def readTextFromFile(self, fileName=None, encoding=None):
 		previousFileName = self._fileName
 		if fileName:
@@ -293,7 +301,7 @@ class ReTextTab(QSplitter):
 		openfile = QFile(self._fileName)
 		openfile.open(QFile.ReadOnly)
 		stream = QTextStream(openfile)
-		encoding = encoding or globalSettings.defaultCodec
+		encoding = self.detectFileEncoding(fileName)
 		if encoding:
 			stream.setCodec(encoding)
 		text = stream.readAll()
