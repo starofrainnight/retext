@@ -307,6 +307,10 @@ class ReTextTab(QSplitter):
 
 		if encoding is None: # Check the result of detectFileEncoding() either
 			encoding = globalSettings.defaultCodec
+		else:
+			# If we specific an encoding or detected a encoding, we should save
+			# the file with same encoding
+			globalSettings.defaultCodec = encoding
 
 		if encoding:
 			stream.setCodec(encoding)
