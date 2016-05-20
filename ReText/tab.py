@@ -289,9 +289,19 @@ class ReTextTab(QSplitter):
 		self.previewBox.setVisible(self.previewState > PreviewDisabled)
 
 	def detectFileEncoding(self, fileName):
+		'''
+		Detect content encoding of specific file by first 512 bytes.
+		
+		It will return the global default encoding if it can't determine
+		which the encoding is. 
+		'''
 		someBytes = min(512, os.path.getsize(fileName))
 		raw = open(fileName, 'rb').read(someBytes)
 		result = chardet.detect(raw)
+		
+		if result["confidence"] < 0.65:
+			return globalSettings.defaultCodec
+			
 		return result['encoding']
 
 	def readTextFromFile(self, fileName=None, encoding=None):
@@ -304,9 +314,6 @@ class ReTextTab(QSplitter):
 
 		if encoding is None:
 			encoding = self.detectFileEncoding(fileName)
-
-		if encoding is None: # Check the result of detectFileEncoding() either
-			encoding = globalSettings.defaultCodec
 
 		if encoding:
 			stream.setCodec(encoding)
@@ -333,12 +340,8 @@ class ReTextTab(QSplitter):
 		if result:
 			savestream = QTextStream(savefile)
 
-			# Save the file with original encoding or with default encoding
+			# Save the file with original encoding
 			encoding = self.editBox.document().property("encoding")
-
-			if encoding is None:
-				encoding = globalSettings.defaultCodec
-
 			if encoding is not None:
 				savestream.setCodec(encoding)
 
