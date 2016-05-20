@@ -312,6 +312,7 @@ class ReTextTab(QSplitter):
 		openfile.open(QFile.ReadOnly)
 		stream = QTextStream(openfile)
 
+		# Only do encoding detect behavior while encoding have not specificed yet. 
 		if encoding is None:
 			encoding = self.detectFileEncoding(fileName)
 
