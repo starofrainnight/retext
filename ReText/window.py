@@ -353,6 +353,11 @@ class ReTextWindow(QMainWindow):
 		self.fileSystemWatcher = QFileSystemWatcher()
 		self.fileSystemWatcher.fileChanged.connect(self.fileChanged)
 
+		if globalSettings.openLastFilesOnStartup:
+			files = readListFromSettings("lastFileList")
+			for file in files:
+				self.openFileWrapper(file)
+
 	def iterateTabs(self):
 		for i in range(self.tabWidget.count()):
 			yield self.tabWidget.widget(i)
@@ -1078,6 +1083,12 @@ class ReTextWindow(QMainWindow):
 				return closeevent.ignore()
 		if globalSettings.saveWindowGeometry and not self.isMaximized():
 			globalSettings.windowGeometry = self.saveGeometry()
+		if globalSettings.openLastFilesOnStartup:
+			files = []
+			for i in range(0, self.tabWidget.count()):
+				tab = self.tabWidget.widget(i)
+				files.append(tab.fileName)
+			writeListToSettings("lastFileList", files)
 		closeevent.accept()
 
 	def viewHtml(self):
