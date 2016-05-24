@@ -42,7 +42,7 @@ If the type is 'file path', then the value should be an absolute path
 to a file.
 
 These options can be set internally by ReText and should never be set
-manually: `recentFileList`, `lastFileList` and `windowGeometry`.
+manually: `recentFileList`, `lastFileList`, `lastTabIndex` and `windowGeometry`.
 
 Icon themes
 ===========

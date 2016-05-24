@@ -20,7 +20,7 @@ import markups
 import sys
 from subprocess import Popen
 from ReText import icon_path, app_version, globalSettings, readListFromSettings, \
- writeListToSettings, writeToSettings, datadirs
+ readFromSettings, writeListToSettings, writeToSettings, datadirs
 from ReText.tab import ReTextTab, ReTextWebPreview, PreviewNormal, PreviewLive
 from ReText.dialogs import HtmlDialog, LocaleDialog
 from ReText.config import ConfigDialog
@@ -353,10 +353,17 @@ class ReTextWindow(QMainWindow):
 		self.fileSystemWatcher = QFileSystemWatcher()
 		self.fileSystemWatcher.fileChanged.connect(self.fileChanged)
 
+		# Restore last opened files
 		if globalSettings.openLastFilesOnStartup:
 			files = readListFromSettings("lastFileList")
 			for file in files:
 				self.openFileWrapper(file)
+
+			# Trigger the tab of last opened file
+			lastTabIndex = readFromSettings(
+				"lastTabIndex", int, default=self.tabWidget.currentIndex())
+			if (lastTabIndex >= 0) and (lastTabIndex < self.tabWidget.count()):
+				self.tabWidget.setCurrentIndex(lastTabIndex)
 
 	def iterateTabs(self):
 		for i in range(self.tabWidget.count()):
@@ -1089,6 +1096,7 @@ class ReTextWindow(QMainWindow):
 				tab = self.tabWidget.widget(i)
 				files.append(tab.fileName)
 			writeListToSettings("lastFileList", files)
+			writeToSettings("lastTabIndex", self.tabWidget.indexOf(self.currentTab), int)
 		closeevent.accept()
 
 	def viewHtml(self):
