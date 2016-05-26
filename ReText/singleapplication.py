@@ -102,6 +102,15 @@ class SingleApplication(QObject):
 				if not self._server.listen(self._name):
 					raise RuntimeError("Local server failed to listen on '%s'" % self._name)
 		else:
+			# Detach immediately if create failed.
+			#
+			# WARNING: On windows os, seems if we don't detach the share memory
+			# after failed to create, another ReText can't create the share 
+			# memory after original instance exitted while there still have 
+			# ReText as client. 
+			self._sharedMemory.detach()
+			self._sharedMemory = None
+			
 			self._mode = self.Client
 			self._client = QLocalSocket(self)
 			self._client.connectToServer(self._name)
