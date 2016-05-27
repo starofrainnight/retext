@@ -47,6 +47,7 @@ for dir in datadirs:
 configOptions = {
 	'appStyleSheet': '',
 	'autoSave': False,
+	'openLastFilesOnStartup': False,
 	'defaultCodec': '',
 	'defaultMarkup': '',
 	'editorFont': QFont(),
