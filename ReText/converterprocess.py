@@ -11,6 +11,44 @@ import weakref
 
 from PyQt5.QtCore import pyqtSignal, QObject, QSocketNotifier
 
+
+import sys
+
+SocketPair = None
+if sys.platform == "win32":
+    import threading
+
+    try:
+        pairfamily = socket.AF_UNIX
+    except:
+        pairfamily = socket.AF_INET
+                
+    def pairConnect(sock, port):
+        sock.connect( ('localhost', port) )
+
+    def SocketPair(family=pairfamily, type_=socket.SOCK_STREAM, proto=socket.IPPROTO_IP):
+        """Wraps socketpair() to support Windows using local ephemeral ports"""
+        try:
+            sock1, sock2 = socket.socketpair(family, type_, proto)
+            return (sock1, sock2)
+        except:
+            listensock = socket.socket(family, type_, proto)
+            listensock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listensock.bind( ('localhost', 0) )
+            iface, ephport = listensock.getsockname()
+            listensock.listen(1)
+
+            sock1 = socket.socket(family, type_, proto)
+            connthread = threading.Thread(target=pairConnect, args=[sock1, ephport])
+            connthread.setDaemon(1)
+            connthread.start()
+            sock2, sock2addr = listensock.accept()
+            listensock.close()
+            return (sock1, sock2)
+else:
+    SocketPair = socket.socketpair   
+
+
 def recvall(sock, remaining):
     alldata = bytearray()
     while remaining > 0:
@@ -97,7 +135,7 @@ class ConverterProcess(QObject):
     def __init__(self):
         super(QObject, self).__init__()
 
-        conn_parent, conn_child = socket.socketpair()
+        conn_parent, conn_child = SocketPair()
 
         # TODO: figure out which of the two sockets should be set to 
         #       inheritable and which should be passed to the child
