@@ -22,8 +22,6 @@ from markups.common import MODULE_HOME_PAGE
 from ReText import app_version, globalSettings, converterprocess
 from ReText.editor import ReTextEdit
 from ReText.highlighter import ReTextHighlighter
-import os
-import chardet
 
 try:
 	from ReText.fakevimeditor import ReTextFakeVimHandler
@@ -290,19 +288,32 @@ class ReTextTab(QSplitter):
 
 	def detectFileEncoding(self, fileName):
 		'''
-		Detect content encoding of specific file by first 512 bytes.
+		Detect content encoding of specific file.
 
-		It will return the global default encoding if it can't determine
-		which the encoding is.
+		It will return the None if it can't determine the encoding.
 		'''
-		someBytes = min(512, os.path.getsize(fileName))
-		raw = open(fileName, 'rb').read(someBytes)
+		try:
+			import chardet
+		except ImportError:
+			return
+
+		with open(fileName, 'rb') as inputFile:
+			raw = inputFile.read(2048)
+
 		result = chardet.detect(raw)
-
-		if result["confidence"] < 0.65:
-			return globalSettings.defaultCodec
-
-		return result['encoding']
+		if result['confidence'] > 0.65:
+			if result['encoding'].lower() == 'ascii':
+				# Encoding 'utf-8' is compatible with 'ascii'.
+ 				# if we detected a file be encoded as 'ascii', there have
+				# two possible reasons:
+				#
+				# 1. The file is really encoded as 'ascii'
+				# 2. The file is encoded as 'utf-8', but there don't have any
+				#    utf-8 characters in first 2048 Bytes.
+				#
+				# It's fine to decode by 'utf-8' encoding in both situation.
+				return 'utf-8'
+			return result['encoding']
 
 	def readTextFromFile(self, fileName=None, encoding=None):
 		previousFileName = self._fileName
@@ -312,21 +323,22 @@ class ReTextTab(QSplitter):
 		openfile.open(QFile.ReadOnly)
 		stream = QTextStream(openfile)
 
-		# Only do encoding detect behavior while encoding have not specificed yet.
-		if encoding is None:
+		# Only try to detect encoding if it is not specified
+		if encoding is None and globalSettings.detectEncoding:
 			encoding = self.detectFileEncoding(fileName)
 
+		encoding = encoding or globalSettings.defaultCodec
 		if encoding:
 			stream.setCodec(encoding)
+			# If encoding is specified or detected, we should save the file with
+			# the same encoding
+			self.editBox.document().setProperty("encoding", encoding)
+
 		text = stream.readAll()
 		openfile.close()
 
 		self.editBox.setPlainText(text)
 		self.editBox.document().setModified(False)
-
-		# If we specific an encoding or detected a encoding, we should save
-		# the file with same encoding
-		self.editBox.document().setProperty("encoding", encoding)
 
 		if previousFileName != self._fileName:
 			self.updateActiveMarkupClass()
@@ -357,10 +369,10 @@ class ReTextTab(QSplitter):
 		if result:
 			self.editBox.document().setModified(False)
 			self.p.fileSystemWatcher.addPath(fileName or self._fileName)
-		if result and self._fileName != fileName:
-			self._fileName = fileName
-			self.updateActiveMarkupClass()
-			self.fileNameChanged.emit()
+			if fileName and self._fileName != fileName:
+				self._fileName = fileName
+				self.updateActiveMarkupClass()
+				self.fileNameChanged.emit()
 
 		return result
 
